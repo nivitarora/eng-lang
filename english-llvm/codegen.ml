@@ -144,6 +144,20 @@ let translate (globals, functions, structs) =
               else
                 L.build_neg)
             | A.Not     -> L.build_not) e' "tmp" builder
+      | A.StructAccess (s,m) -> let (stype, location) = (match s with
+        | A.Id id -> (lookup_type id, lookup id)
+        | A.Dereference sp -> (strip(lookup_type (A.string_of_expr sp)), expr builder s)
+        (* implement array access later? *)
+        (* | A.ArrayAccess (a, _) -> (strip(strip(lookup_type (A.string_of_expr a))) , expr builder s) *)
+        | _ -> raise (Failure("illegal struct type " ^ A.string_of_expr s))) in
+           let members = snd (struct_lookup (A.string_of_typ stype)) in
+           let rec get_idx n lst i = match lst with
+           | [] -> raise (Failure("CODEGEN: id " ^ m ^ " is not a member of struct " ^
+          A.string_of_expr s))
+           | hd::tl -> if (hd = n) then i else get_idx n tl (i+1)
+           in let idx = (get_idx m (List.map (fun (_,nm,_,_) -> nm) members) 0) in
+           let ptr = L.build_struct_gep location idx ("struct.ptr") builder in
+           L.build_load ptr ("struct.val."^m) builder
          
       | A.Assign (s, e) -> let e' = expr builder g_map l_map e in
                      ignore (L.build_store e' (lookup g_map l_map s) builder); e'

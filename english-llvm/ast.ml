@@ -25,6 +25,8 @@ type expr =
   | Unop of uop * expr
   | Assign of string * expr
   | Call of string * expr list
+  | StructAccess of expr * string
+  | Dereference of expr
   | Noexpr
 
 type stmt =
@@ -83,8 +85,10 @@ let rec string_of_expr = function
       string_of_expr e1 ^ " " ^ string_of_op o ^ " " ^ string_of_expr e2
   | Unop(o, e) -> string_of_uop o ^ string_of_expr e
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
+  | StructAccess(s,n) -> (string_of_expr s) ^ "." ^ n
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | Dereference(p) -> "*" ^ string_of_expr p
   | Noexpr -> ""
 
 let rec string_of_stmt = function

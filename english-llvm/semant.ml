@@ -165,6 +165,13 @@ let check (globals, functions, structs) =
 	       | Not when t = Bool -> Bool
          | _ -> raise (Failure ("illegal unary operator " ^ string_of_uop op ^
 	  		   string_of_typ t ^ " in " ^ string_of_expr ex)))
+      | Dereference(e) -> let t = expr e in (match t with
+           (*Pointer(Int) -> Int
+         | Pointer(Bool) -> Bool
+         | Pointer(Char) -> Char
+         | Pointer(Pointer(t)) -> if t = Char then String else Pointer(t)*) (* <-- can implement after structs dereferencing works, to avoid errors *)
+         | Pointer(Struct(n)) -> Struct(n)
+         | _ -> raise (Failure ("invalid dereference " ^ string_of_expr e ^ " of type " ^ string_of_typ t)))
       | Noexpr -> Void
       | Assign(var, e) as ex -> let lt = type_of_identifier var
                                 and rt = expr e in
@@ -182,6 +189,14 @@ let check (globals, functions, structs) =
                 " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e))))
              fd.formals actuals;
            fd.typ
+      | StructAccess(s, m) as sa ->
+           let sd = struct_decl (string_of_typ (strip (strip (expr s)))) in
+           let members = List.fold_left (fun m (t,n,_,_) -> StringMap.add n t m) StringMap.empty
+          sd.members in
+           (try StringMap.find m members
+           with Not_found -> raise (Failure ("not valid member " ^ m ^ " in struct " ^ string_of_expr
+          sa)))
+
     in
 
     let check_bool_expr e = if expr e != Bool
